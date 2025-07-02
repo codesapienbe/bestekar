@@ -1,0 +1,132 @@
+[project]
+name = "bestekar"
+version = "0.1.0"
+description = "Türkçe şarkı sözlerini müziğe dönüştüren AI powered besteci"
+readme = "README.md"
+requires-python = ">=3.9, <3.10"
+
+license = {text = "MIT"}
+
+authors = [
+    {name = "Yilmaz Mustafa", email = "ymus@tuta.io"},
+]
+
+keywords = [
+    "music", "ai", "turkish", "song", "generator", "musicgen", "bestekar", "türkçe", "şarkı", "besteci",
+    "yapay zeka", "yapay müzik", "yapay şarkı", "yapay besteci", "yapay müzisyen"
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Multimedia :: Sound/Audio :: Sound Synthesis",
+]
+
+dependencies = [
+    "torch==2.1.0",
+    "torchaudio==2.1.0",
+    "audiocraft>=1.3.0,<2.0.0",
+    "transformers>=4.41.0",
+    "numpy>=1.21,<2.0",
+    "scipy>=1.9.0",
+    "numba>=0.58.0",
+    "llvmlite>=0.41.0",
+    "loguru>=0.7.0",
+    "hf_xet>=0.1.0; platform_system != 'Windows'",
+    "spacy>=3.7.4,<3.8.0",
+    "python-dotenv>=1.0.0",
+    "kivy>=2.3.0",
+    "pystray>=0.19.4",
+    "pillow>=10.0.0",
+    "cairosvg>=2.7.0",
+    "requests>=2.31.0",
+    "psutil>=5.9.0",
+    # Task queue dependencies
+    "celery>=5.3.0",
+    # RVC Integration dependencies - managed by uv
+    "edge-tts>=6.1.0",
+    "soundfile>=0.12.0",
+    "librosa>=0.10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+]
+
+rvc = [
+    # Alternative RVC dependencies for voice synthesis
+    # Note: rvc-python conflicts with audiocraft due to hydra-core versions
+    # Install manually: pip install rvc-python (after uv sync)
+    "praat-parselmouth>=0.4.0",
+    "pyworld>=0.3.0", 
+    "gradio>=3.0.0",
+    "resampy>=0.4.0",
+    "yt-dlp>=2024.11.24",
+    "pydub>=0.25.1",
+    "onnxruntime>=1.15.0",
+    "tqdm>=4.65.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/codesapien/bestekar"
+Repository = "https://github.com/codesapien/bestekar"
+Issues = "https://github.com/codesapien/bestekar/issues"
+
+[project.scripts]
+bestekar = "bestekar:main"
+bestewk = "bestewk:main"
+besteml = "besteml:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bestekar", "src/bestewk", "src/besteml"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/README.md",
+    "/LICENSE",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 88
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

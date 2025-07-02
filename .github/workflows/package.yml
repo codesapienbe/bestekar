@@ -1,0 +1,152 @@
+name: Build PyInstaller Release
+
+permissions:
+  contents: write
+  id-token: write
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+  workflow_dispatch:
+
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # ---------------------------------------------------------
+      # macOS needs torch installed *before* uv sync pulls xformers
+      # ---------------------------------------------------------
+      - name: Pre-install torch on macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          python -m pip install --upgrade pip
+          # CPU wheel: replace with 'torch==2.1.0 torchvision==0.16.0' if you need GPU/Metal
+          pip install torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install UV CLI and project dependencies
+        run: |
+          # pip was upgraded above on macOS; harmless to do it again on other OSes
+          python -m pip install --upgrade pip
+          pip install uv
+          uv sync        # now xformers can find torch headers
+
+      - name: Install UPX on Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: | 
+          sudo apt-get update && \
+          sudo apt-get install -y upx && \
+          sudo apt-get install -y python3-tk && \
+          sudo apt-get install -y python3-tk-dev && \
+          sudo apt-get install -y ffmpeg
+          
+      - name: Install UPX on macOS
+        if: matrix.os == 'macos-latest'
+        run: brew install upx
+
+      - name: Build with PyInstaller via UV
+        shell: bash
+        run: |
+           uv run pyinstaller \
+            --noconfirm \
+            --onefile \
+            --add-data "data/*:data" \
+            --hidden-import torch \
+            --hidden-import torchaudio \
+            --hidden-import audiocraft \
+            --hidden-import transformers \
+            --hidden-import numpy \
+            --hidden-import scipy \
+            --hidden-import numba \
+            --hidden-import llvmlite \
+            --hidden-import loguru \
+            --hidden-import spacy \
+            --hidden-import python_dotenv \
+            --hidden-import pystray \
+            --hidden-import pillow \
+            src/bestekar/__init__.py \
+            --name bestekar \
+            --strip
+
+      - name: Rename output (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          Write-Host "Listing contents of dist directory:"
+          Get-ChildItem -Path "dist" -Recurse
+          if (Test-Path -Path "dist\bestekar.exe") {
+            Move-Item -Path "dist\bestekar.exe" -Destination "dist\bestekar-windows.exe"
+          } else {
+            Write-Error "File not found: dist\bestekar.exe"
+          }
+
+      - name: Rename output (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mv dist/bestekar dist/bestekar-linux
+
+      - name: Rename output (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          mv dist/bestekar dist/bestekar-macos
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bestekar-${{ matrix.os }}
+          path: dist/bestekar-*
+
+  publish_release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) }}
+    steps:
+      - name: Set release tag name
+        id: set_tag
+        run: |
+          DATE=$(date +'%Y.%m.%d')
+          echo "TAG_NAME=v${DATE}" >> $GITHUB_ENV
+
+      - name: Download Linux build
+        uses: actions/download-artifact@v4
+        with:
+          name: bestekar-ubuntu-latest
+          path: dist_linux
+      - name: Download Windows build
+        uses: actions/download-artifact@v4
+        with:
+          name: bestekar-windows-latest
+          path: dist_windows
+      - name: Download macOS build
+        uses: actions/download-artifact@v4
+        with:
+          name: bestekar-macos-latest
+          path: dist_macos
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
+            dist_linux/bestekar-linux
+            dist_windows/bestekar-windows.exe
+            dist_macos/bestekar-macos
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

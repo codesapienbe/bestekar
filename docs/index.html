@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 Bestekar - Türkçe AI Besteci</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav container">
+            <div class="nav__brand">
+                <span class="nav__logo">🎵</span>
+                <span class="nav__title">Bestekar</span>
+            </div>
+            <ul class="nav__menu">
+                <li><a href="#home" class="nav__link">Ana Sayfa</a></li>
+                <li><a href="#features" class="nav__link">Özellikler</a></li>
+                <li><a href="#demo" class="nav__link">Demo</a></li>
+                <li><a href="#tech" class="nav__link">Teknoloji</a></li>
+                <li><a href="#about" class="nav__link">Hakkında</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero__background"></div>
+        <div class="container">
+            <div class="hero__content">
+                <h1 class="hero__title">🎵 Bestekar - Türkçe AI Besteci</h1>
+                <p class="hero__subtitle">Türkçe şarkı sözlerinizi yapay zeka ile müziğe dönüştürün!</p>
+                <div class="hero__badges">
+                    <span class="badge">Python 3.9+</span>
+                    <span class="badge">MIT License</span>
+                    <span class="badge">AI-Powered</span>
+                </div>
+                <a href="#demo" class="btn btn--primary btn--lg">Demo'yu Deneyin</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section id="demo" class="demo">
+        <div class="container">
+            <h2 class="section__title">🎼 Müzik Üreticisini Deneyin</h2>
+            <p class="section__subtitle">Türkçe şarkı sözlerinizi girin ve AI ile müziğe dönüştürün</p>
+            
+            <div class="demo__container">
+                <div class="demo__input">
+                    <div class="form-group">
+                        <label for="lyrics" class="form-label">Şarkı Sözleri</label>
+                        <textarea 
+                            id="lyrics" 
+                            class="form-control demo__textarea" 
+                            rows="6" 
+                            placeholder="Türkçe şarkı sözlerinizi buraya yazın...">Gece iner, başın yastıkta ağır,
+Düşünceler döner, kalbinde bir çağrı.
+Uyku kaçar, gözlerin dalar,
+Endişe sarar, ruhunu yorar.</textarea>
+                    </div>
+
+                    <div class="demo__controls">
+                        <div class="form-group">
+                            <label for="style" class="form-label">Müzik Stili</label>
+                            <select id="style" class="form-control">
+                                <option value="Turkish emotional ballad, acoustic guitar, soft piano">Duygusal Ballad</option>
+                                <option value="Turkish folk song, traditional instruments, emotional vocals">Türkü Tarzı</option>
+                                <option value="Turkish pop ballad, contemporary, heartfelt vocals">Modern Pop</option>
+                                <option value="Turkish acoustic song, guitar, intimate, emotional">Akustik</option>
+                                <option value="Turkish romantic ballad, soft melody, love song">Romantik</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="duration" class="form-label">Süre: <span id="duration-value">30</span> saniye</label>
+                            <input type="range" id="duration" class="duration-slider" min="15" max="60" value="30">
+                        </div>
+                    </div>
+
+                    <button id="generate-btn" class="btn btn--primary btn--lg btn--full-width">
+                        <span class="btn__text">Müzik Üret</span>
+                        <span class="btn__loading hidden">Üretiliyor...</span>
+                    </button>
+                </div>
+
+                <div class="demo__output">
+                    <div class="music-player hidden" id="music-player">
+                        <div class="player__header">
+                            <h3 class="player__title">Oluşturulan Şarkı</h3>
+                            <span class="status status--success">Başarılı</span>
+                        </div>
+                        <div class="player__waveform">
+                            <div class="waveform" id="waveform">
+                                <div class="waveform__bar"></div>
+                                <div class="waveform__bar"></div>
+                                <div class="waveform__bar"></div>
+                                <div class="waveform__bar"></div>
+                                <div class="waveform__bar"></div>
+                                <div class="waveform__bar"></div>
+                                <div class="waveform__bar"></div>
+                                <div class="waveform__bar"></div>
+                                <div class="waveform__bar"></div>
+                                <div class="waveform__bar"></div>
+                                <div class="waveform__bar"></div>
+                                <div class="waveform__bar"></div>
+                            </div>
+                        </div>
+                        <div class="player__controls">
+                            <button class="player__btn" id="play-btn">▶️</button>
+                            <div class="player__progress">
+                                <div class="progress__bar">
+                                    <div class="progress__fill" id="progress-fill"></div>
+                                </div>
+                                <span class="progress__time">0:00 / <span id="total-time">0:30</span></span>
+                            </div>
+                            <button class="player__btn">⬇️</button>
+                        </div>
+                    </div>
+
+                    <div class="instrument-showcase">
+                        <img src="https://pplx-res.cloudinary.com/image/upload/v1751410514/pplx_project_search_images/c6de4899f45f84194cac2a3ec30c31b727cf5519.jpg" alt="Traditional Turkish Saz" class="instrument-image">
+                        <p class="instrument-caption">Geleneksel Türk müzik aletleri ile ilham alın</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section__title">✨ Özellikler</h2>
+            <div class="features__grid">
+                <div class="feature-card">
+                    <div class="feature-card__icon">🤖</div>
+                    <h3 class="feature-card__title">AI Destekli Müzik Üretimi</h3>
+                    <p class="feature-card__description">Facebook MusicGen-Melody modelini kullanır</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card__icon">🇹🇷</div>
+                    <h3 class="feature-card__title">Türkçe Odaklı</h3>
+                    <p class="feature-card__description">Türk müzik tarzlarına uygun melodi üretimi</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card__icon">🎨</div>
+                    <h3 class="feature-card__title">Özelleştirilebilir Stiller</h3>
+                    <p class="feature-card__description">Ballad, türkü, pop ve daha fazlası</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card__icon">⚡</div>
+                    <h3 class="feature-card__title">Hızlı ve Kolay</h3>
+                    <p class="feature-card__description">Tek komutla çalışır</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card__icon">🔧</div>
+                    <h3 class="feature-card__title">Modern Python</h3>
+                    <p class="feature-card__description">uv ile paket yönetimi</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card__icon">🎧</div>
+                    <h3 class="feature-card__title">Yüksek Kalite</h3>
+                    <p class="feature-card__description">WAV formatında çıktı</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technology Section -->
+    <section id="tech" class="tech">
+        <div class="container">
+            <h2 class="section__title">🛠️ Teknoloji</h2>
+            <div class="tech__content">
+                <div class="tech__info">
+                    <h3>MusicGen-Melody Modeli</h3>
+                    <p>Facebook Research tarafından geliştirilen son teknoloji AI müzik üretim modeli.</p>
+                    
+                    <div class="tech__specs">
+                        <h4>Teknik Özellikler:</h4>
+                        <ul>
+                            <li><strong>Framework:</strong> AudioCraft</li>
+                            <li><strong>Çıktı Formatı:</strong> WAV (32kHz)</li>
+                            <li><strong>Süre Aralığı:</strong> 15-60 saniye</li>
+                            <li><strong>GPU Bellek:</strong> 8GB+ önerilen</li>
+                            <li><strong>Python:</strong> 3.9+</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="tech__diagram">
+                    <div class="diagram">
+                        <div class="diagram__step">
+                            <div class="step__icon">📝</div>
+                            <div class="step__label">Türkçe Şarkı Sözleri</div>
+                        </div>
+                        <div class="diagram__arrow">→</div>
+                        <div class="diagram__step">
+                            <div class="step__icon">🤖</div>
+                            <div class="step__label">MusicGen AI</div>
+                        </div>
+                        <div class="diagram__arrow">→</div>
+                        <div class="diagram__step">
+                            <div class="step__icon">🎵</div>
+                            <div class="step__label">Türk Müziği</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sample Gallery -->
+    <section class="samples">
+        <div class="container">
+            <h2 class="section__title">🎵 Örnek Şarkılar</h2>
+            <div class="samples__grid">
+                <div class="sample-card">
+                    <div class="sample-card__header">
+                        <h3>Aile Sevgisi</h3>
+                        <span class="sample-card__style">Duygusal Ballad</span>
+                    </div>
+                    <p class="sample-card__description">Aile bağlarını konu alan duygusal bir ballad</p>
+                    <div class="sample-card__controls">
+                        <button class="sample-play-btn">▶️</button>
+                        <span class="sample-duration">45s</span>
+                    </div>
+                </div>
+                <div class="sample-card">
+                    <div class="sample-card__header">
+                        <h3>Ayrılık Acısı</h3>
+                        <span class="sample-card__style">Türkü Tarzı</span>
+                    </div>
+                    <p class="sample-card__description">Geleneksel türkü tarzında ayrılık şarkısı</p>
+                    <div class="sample-card__controls">
+                        <button class="sample-play-btn">▶️</button>
+                        <span class="sample-duration">38s</span>
+                    </div>
+                </div>
+                <div class="sample-card">
+                    <div class="sample-card__header">
+                        <h3>Umut Şarkısı</h3>
+                        <span class="sample-card__style">Modern Pop</span>
+                    </div>
+                    <p class="sample-card__description">Gelecek umutlarını anlatan pop ballad</p>
+                    <div class="sample-card__controls">
+                        <button class="sample-play-btn">▶️</button>
+                        <span class="sample-duration">42s</span>
+                    </div>
+                </div>
+                <div class="sample-card">
+                    <div class="sample-card__header">
+                        <h3>Sevda Türküsü</h3>
+                        <span class="sample-card__style">Akustik</span>
+                    </div>
+                    <p class="sample-card__description">Sade gitar eşliğinde aşk şarkısı</p>
+                    <div class="sample-card__controls">
+                        <button class="sample-play-btn">▶️</button>
+                        <span class="sample-duration">35s</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section class="installation">
+        <div class="container">
+            <h2 class="section__title">🚀 Kurulum</h2>
+            <div class="installation__steps">
+                <div class="step">
+                    <div class="step__number">1</div>
+                    <div class="step__content">
+                        <h3>Depoyu klonlayın</h3>
+                        <div class="code-block">
+                            <code>git clone https://github.com/yourusername/bestekar.git<br>cd bestekar</code>
+                        </div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step__number">2</div>
+                    <div class="step__content">
+                        <h3>Bağımlılıkları yükleyin</h3>
+                        <div class="code-block">
+                            <code>uv sync</code>
+                        </div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step__number">3</div>
+                    <div class="step__content">
+                        <h3>Uygulamayı çalıştırın</h3>
+                        <div class="code-block">
+                            <code>uv run bestekar</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__content">
+                <div class="footer__section">
+                    <h3>🎵 Bestekar</h3>
+                    <p>Türkçe şarkı sözlerinizi yapay zeka ile müziğe dönüştürün!</p>
+                </div>
+                <div class="footer__section">
+                    <h4>Bağlantılar</h4>
+                    <ul>
+                        <li><a href="#" target="_blank">GitHub</a></li>
+                        <li><a href="#" target="_blank">Dokümantasyon</a></li>
+                        <li><a href="#" target="_blank">Örnekler</a></li>
+                    </ul>
+                </div>
+                <div class="footer__section">
+                    <h4>İletişim</h4>
+                    <ul>
+                        <li>your.email@example.com</li>
+                        <li>MIT Lisansı</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer__bottom">
+                <p>&copy; 2025 Bestekar. Tüm hakları saklıdır.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
