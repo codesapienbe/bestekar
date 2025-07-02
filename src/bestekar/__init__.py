@@ -658,6 +658,7 @@ def _create_kivy_classes():
             
         def build(self):
             """Build the Kivy application."""
+            logger.info("Building Kivy application...")
             
             kv_layout = '''
 <RootWidget>:
@@ -862,14 +863,21 @@ def _create_kivy_classes():
 '''
             
             try:
-                if Builder:
-                    Builder.load_string(kv_layout)
-                else:
+                if Builder is None:
                     raise RuntimeError("Kivy Builder not available")
+
+                logger.info("Loading KV layout...")
+                # Parse KV string and obtain the fully-built widget tree
+                root_widget = Builder.load_string(kv_layout)
+                logger.info(f"KV layout loaded, root widget type: {type(root_widget)}")
+                logger.info(f"Root widget children count: {len(root_widget.children) if hasattr(root_widget, 'children') else 'N/A'}")
+                return root_widget
+
             except Exception as e:
-                logger.error(f"Error loading Kivy layout: {e}")
-                
-            return RootWidget()
+                logger.exception(f"Error building Kivy UI: {e}")
+                # Graceful fallback: show an empty layout instead of crashing
+                from kivy.uix.boxlayout import BoxLayout
+                return BoxLayout()
             
         def on_stop(self):
             """Called when the app stops."""
@@ -1829,10 +1837,47 @@ class TurkishSongGeneratorWithRVC(TurkishSongGenerator):
 def main():
     """Main entry point - launches system tray application."""
     
-    # Load Kivy components for GUI functionality
-    if not _load_kivy_for_gui():
-        print("❌ Failed to load GUI components")
-        sys.exit(1)
+    # Global variables for thread management
+    generation_app = None
+    active_threads = []
+    # Pre-loaded GUI components for instant display
+    preloaded_app = None
+    preloaded_root = None
+    # Thread-safe queue for scheduling GUI actions from background threads
+    import queue
+    task_queue: "queue.Queue[str]" = queue.Queue()
+    
+    # Pre-load Kivy GUI components in background for instant display
+    # This prevents the window from showing until explicitly requested
+    def preload_gui():
+        """Pre-load GUI components without showing window."""
+        nonlocal preloaded_app, preloaded_root
+        
+        try:
+            if not _load_kivy_for_gui():
+                logger.error("Failed to load GUI components for preloading")
+                return False
+                
+            logger.info("Pre-loading GUI components...")
+            
+            # Create app instance but don't run it yet
+            preloaded_app = BestekarKivyApp()
+            
+            # Build the root widget tree
+            preloaded_root = preloaded_app.build()
+            
+            logger.info(f"GUI pre-loaded successfully: {type(preloaded_root)}")
+            return True
+            
+        except Exception as e:
+            logger.exception(f"Error pre-loading GUI: {e}")
+            return False
+    
+    # Start GUI preloading in background thread
+    import threading
+    gui_preload_thread = threading.Thread(target=preload_gui, name="GUIPreload", daemon=True)
+    active_threads.append(gui_preload_thread)
+    gui_preload_thread.start()
 
     # ------------------------------------------------------------------
     # Minimum disk-space guard (model + temp wavs require ~2 GB)
@@ -1889,13 +1934,6 @@ def main():
 
     print("🔧 System tray started. Right-click the tray icon to generate songs.")
 
-    # Global variables for thread management
-    generation_app = None
-    active_threads = []
-    # Thread-safe queue for scheduling GUI actions from background threads
-    import queue
-    task_queue: "queue.Queue[str]" = queue.Queue()
-
     def cleanup_threads():
         """Kill all active threads before exit."""
         import threading
@@ -1937,26 +1975,34 @@ def main():
 
     def on_generate(icon, item):
         """Open Kivy generation window."""
-        nonlocal generation_app
+        nonlocal generation_app, preloaded_app, preloaded_root
         
         try:
-            # Ensure Kivy is loaded for GUI functionality
-            if not _load_kivy_for_gui():
-                logger.error("Failed to load Kivy for GUI")
-                if hasattr(icon, 'notify'):
-                    icon.notify("Bestekar", "Failed to load GUI components")
-                return
+            # Check if GUI is pre-loaded
+            if preloaded_app and preloaded_root:
+                logger.info("Using pre-loaded GUI for instant display")
+                generation_app = preloaded_app
                 
-            import platform, threading
-
-            # On Windows the Kivy UI must run on the main thread. If we're not on
-            # the main thread, enqueue the request so the main-thread loop can
-            # launch the GUI safely. Otherwise run it directly.
-            if platform.system() == "Windows" and threading.current_thread().name != "MainThread":
-                task_queue.put("generate")
+                # On Windows, ensure we run on main thread
+                if platform.system() == "Windows" and threading.current_thread().name != "MainThread":
+                    task_queue.put("generate")
+                else:
+                    generation_app.run()
             else:
+                # Fallback: load GUI on-demand
+                logger.info("GUI not pre-loaded, loading on-demand...")
+                if not _load_kivy_for_gui():
+                    logger.error("Failed to load Kivy for GUI")
+                    if hasattr(icon, 'notify'):
+                        icon.notify("Bestekar", "Failed to load GUI components")
+                    return
+                
                 generation_app = BestekarKivyApp()
-                generation_app.run()
+                
+                if platform.system() == "Windows" and threading.current_thread().name != "MainThread":
+                    task_queue.put("generate")
+                else:
+                    generation_app.run()
             
         except Exception as e:
             logger.exception("Error opening generation window", error=str(e))
@@ -2107,8 +2153,13 @@ def main():
                     task = None
 
                 if task == "generate":
-                    generation_app = BestekarKivyApp()
-                    generation_app.run()
+                    if preloaded_app and preloaded_root:
+                        generation_app = preloaded_app
+                        generation_app.run()
+                    else:
+                        # Fallback: create new app
+                        generation_app = BestekarKivyApp()
+                        generation_app.run()
                 time.sleep(0.5)
         except KeyboardInterrupt:
             logger.info("Received interrupt signal")
