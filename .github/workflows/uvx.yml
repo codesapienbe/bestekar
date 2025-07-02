@@ -2,7 +2,7 @@ name: Build & Publish Wheel for UVX
 
 on:
   push:
-    branches: [main]
+    branches: [CSNET]
     tags: ['v*']
   release:
     types: [published]
