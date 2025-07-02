@@ -416,6 +416,38 @@ def exit_app_task():
         }
 
 # --------------------------------------------------
+# Application Initialization Task
+# --------------------------------------------------
+
+@celery_app.task(name='bestewk.app_init', queue='ui_actions')
+def app_init_task():
+    """Run heavy application initialisation (e.g., downloading models) in a
+    background Celery worker so the GUI remains responsive."""
+    start_time = datetime.now()
+    try:
+        from bestekar import setup_rvc_integration  # Imported here to avoid heavy import in worker start
+
+        setup_rvc_integration()
+
+        elapsed = (datetime.now() - start_time).total_seconds()
+        logger.info("Application initialisation completed", duration=f"{elapsed:.1f}s")
+        return {
+            'status': 'SUCCESS',
+            'action': 'app_initialised',
+            'duration_sec': elapsed,
+            'timestamp': datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        logger.exception("Application initialisation failed", error=str(e))
+        return {
+            'status': 'FAILURE',
+            'error': str(e),
+            'action': 'app_initialisation_failed',
+            'timestamp': datetime.now().isoformat()
+        }
+
+# --------------------------------------------------
 # Task Management Functions
 # --------------------------------------------------
 
@@ -636,12 +668,15 @@ def submit_music_generation(lyrics_text: str, style_text: str, duration: int,
     Returns:
         Task ID for monitoring
     """
-    task = generate_music_task.delay(  # type: ignore[attr-defined]
-        lyrics_text=lyrics_text,
-        style_text=style_text,
-        duration=duration,
-        rvc_model_path=rvc_model_path,
-        mode=mode
+    task = celery_app.send_task(
+        'bestewk.generate_music',
+        kwargs={
+            'lyrics_text': lyrics_text,
+            'style_text': style_text,
+            'duration': duration,
+            'rvc_model_path': rvc_model_path,
+            'mode': mode,
+        },
     )
     
     logger.info(f"Submitted music generation task {task.id}")
@@ -649,13 +684,13 @@ def submit_music_generation(lyrics_text: str, style_text: str, duration: int,
 
 def submit_help_action() -> str:
     """Submit help action task."""
-    task = open_help_task.delay()  # type: ignore[attr-defined]
+    task = celery_app.send_task('bestewk.open_help')
     logger.info(f"Submitted help task {task.id}")
     return task.id
 
 def submit_exit_action() -> str:
     """Submit exit action task."""
-    task = exit_app_task.delay()  # type: ignore[attr-defined]
+    task = celery_app.send_task('bestewk.exit_app')
     logger.info(f"Submitted exit task {task.id}")
     return task.id
 
@@ -665,6 +700,7 @@ __all__ = [
     'generate_music_task',
     'open_help_task', 
     'exit_app_task',
+    'app_init_task',
     'get_active_generation_tasks',
     'get_task_result',
     'revoke_task',

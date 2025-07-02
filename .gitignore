@@ -16,3 +16,17 @@
 .DS_Store
 .idea
 .vscode
+
+# Python cache
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyzw
+*.pyzwz
+**/__pycache__/
+**/__pycache__/**
+
+

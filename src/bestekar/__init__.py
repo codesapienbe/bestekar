@@ -38,6 +38,7 @@ from bestewk import (
     open_help_task, 
     exit_app_task, 
     get_active_generation_tasks,
+    app_init_task,
     celery_app
 )
 
@@ -621,12 +622,15 @@ def _create_kivy_classes():
             
             # Submit Celery task
             try:
-                task = generate_music_task.delay(  # type: ignore[attr-defined]
-                    lyrics_text=lyrics_text,
-                    style_text=style_text,
-                    duration=duration,
-                    rvc_model_path=rvc_model_path,
-                    mode=generation_mode
+                task = celery_app.send_task(
+                    'bestewk.generate_music',
+                    kwargs={
+                        'lyrics_text': lyrics_text,
+                        'style_text': style_text,
+                        'duration': duration,
+                        'rvc_model_path': rvc_model_path,
+                        'mode': generation_mode,
+                    },
                 )
                 
                 # Start monitoring the task
@@ -1871,14 +1875,26 @@ def main():
     print("📌 Note: You may see some technical warnings about FFmpeg or xFormers.")
     print("   These are normal and don't affect functionality.")
     
-    # Setup RVC integration on first run
-    setup_rvc_integration()
-    
+    # ------------------------------------------------------------------
+    # Launch RVC/model setup in background (keeps UI responsive)
+    # ------------------------------------------------------------------
+
+    try:
+        celery_app.send_task('bestewk.app_init')
+        logger.info("Submitted app_init task to ui_actions queue")
+    except Exception as e:
+        # Fallback: run synchronously if Celery broker not available
+        logger.warning(f"Celery not available – running setup inline: {e}")
+        setup_rvc_integration()
+
     print("🔧 System tray started. Right-click the tray icon to generate songs.")
 
     # Global variables for thread management
     generation_app = None
     active_threads = []
+    # Thread-safe queue for scheduling GUI actions from background threads
+    import queue
+    task_queue: "queue.Queue[str]" = queue.Queue()
 
     def cleanup_threads():
         """Kill all active threads before exit."""
@@ -1931,22 +1947,16 @@ def main():
                     icon.notify("Bestekar", "Failed to load GUI components")
                 return
                 
-            # Create new app instance each time to avoid conflicts
-            generation_app = BestekarKivyApp()
-                
-            # Run Kivy app in separate thread
-            import threading
-            
-            def run_kivy():
-                try:
-                    if generation_app:
-                        generation_app.run()
-                except Exception as e:
-                    logger.exception("Error running Kivy app", error=str(e))
-            
-            kivy_thread = threading.Thread(target=run_kivy, name="KivyGeneration", daemon=True)
-            active_threads.append(kivy_thread)
-            kivy_thread.start()
+            import platform, threading
+
+            # On Windows the Kivy UI must run on the main thread. If we're not on
+            # the main thread, enqueue the request so the main-thread loop can
+            # launch the GUI safely. Otherwise run it directly.
+            if platform.system() == "Windows" and threading.current_thread().name != "MainThread":
+                task_queue.put("generate")
+            else:
+                generation_app = BestekarKivyApp()
+                generation_app.run()
             
         except Exception as e:
             logger.exception("Error opening generation window", error=str(e))
@@ -1956,7 +1966,7 @@ def main():
     def on_help(icon, item):
         """Open help in web browser using Celery task."""
         try:
-            task = open_help_task.delay()  # type: ignore[attr-defined]
+            task = celery_app.send_task('bestewk.open_help')
             logger.info(f"Submitted help task {task.id} to ui_actions queue")
         except Exception as e:
             logger.error(f"Error submitting help task: {e}")
@@ -1971,7 +1981,7 @@ def main():
         
         try:
             # Submit exit task
-            task = exit_app_task.delay()  # type: ignore[attr-defined]
+            task = celery_app.send_task('bestewk.exit_app')
             logger.info(f"Submitted exit task {task.id} to ui_actions queue")
             
             # Wait briefly for task to start
@@ -2089,7 +2099,16 @@ def main():
         active_threads.append(tray_thread)
         
         try:
+            import queue as _queue  # alias to avoid shadowing
             while tray_thread.is_alive():
+                try:
+                    task = task_queue.get(timeout=0.5)
+                except _queue.Empty:
+                    task = None
+
+                if task == "generate":
+                    generation_app = BestekarKivyApp()
+                    generation_app.run()
                 time.sleep(0.5)
         except KeyboardInterrupt:
             logger.info("Received interrupt signal")
