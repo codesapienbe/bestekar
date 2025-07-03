@@ -944,8 +944,8 @@ def _configure_logging():
     )
 
     # File sink (rotating) - keep all messages for debugging
-    log_dir = Path("logs")
-    log_dir.mkdir(exist_ok=True)
+    log_dir = Path.home() / ".bestekar" / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
     logger.add(log_dir / "bestekar.log", rotation="100 MB", retention="10 days", level="DEBUG")
 
     # Optional JSON sink for monitoring

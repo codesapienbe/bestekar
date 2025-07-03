@@ -37,10 +37,10 @@ def _configure_worker_logging():
     )
     
     # Worker-specific log file
-    log_dir = Path("logs")
-    log_dir.mkdir(exist_ok=True)
+    log_dir = Path.home() / ".bestekar" / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
     logger.add(
-        log_dir / "bestewk_worker.log",
+        log_dir / "bestewk.log",
         rotation="50 MB",
         retention="7 days",
         level="DEBUG",
